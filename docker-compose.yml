@@ -1,0 +1,135 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgres:14
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: metastore
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: metastore_db
+    # depends_on:
+    #   - createbuckets
+    volumes:
+      - db:/var/lib/postgresql/data/
+    networks:
+      - trino-network
+
+  hive-metastore:
+    build: ./hive-metastore
+    image: hive-metastore:latest
+    ports:
+      - 9083:9083
+    environment:
+      - HIVE_LOGLEVEL=info
+    depends_on:
+      - postgres
+    networks:
+      - trino-network
+
+  trino-coordinator:
+    image: "trinodb/trino:439"
+    hostname: trino-coordinator
+    ports:
+      - 8080:8080
+    volumes:
+      - ./trino-conf/coordinator/etc:/etc/trino
+    depends_on:
+      - hive-metastore
+    networks:
+      - trino-network
+    profiles:
+      - trino
+
+  trino-worker:
+    image: "trinodb/trino:439"
+    volumes:
+      - ./trino-conf/worker/etc:/etc/trino
+    depends_on:
+      - hive-metastore
+    networks:
+      - trino-network
+    profiles:
+      - trino
+
+  spark-iceberg:
+    build: ./spark-iceberg
+    image: spark-iceberg:latest
+    hostname: spark-iceberg
+    environment:
+      - SPARK_HOME=/opt/spark
+      - PYSPARK_PYTHON=/usr/local/bin/python3.11
+      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/spark/bin
+      - NODE_MODE=master
+    ports:
+      - 4040:4040
+      - 4041:4041
+      - 4042:4042
+      - 7077:7077
+      - 8084:8080
+      - 8085:8081
+      - 8889:8888
+      - 18080:18080
+    depends_on:
+      - postgres
+    networks:
+      - trino-network
+    profiles:
+      - spark
+
+  spark-worker:
+    build: ./spark-iceberg
+    image: spark-iceberg:latest
+    hostname: spark-worker
+    environment:
+      - SPARK_ HOME=/opt/spark
+      - PYSPARK_ PYTHON=/usr/local/bin/python3.11
+      - NODE_MODE=worker
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=2g
+    depends_on:
+      - spark-iceberg
+    networks:
+      - trino-network
+    profiles:
+      - spark
+
+  minio:
+    hostname: minio
+    image: "minio/minio:latest"
+    container_name: minio
+    ports:
+      - 9000:9000
+      - 9090:9090
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: server /data --console-address ":9090"
+    networks:
+      - trino-network
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        until (/usr/bin/mc config host add warehouse http://minio:9000 minio minio123) do echo '...waiting...' && sleep 1; done;
+        /usr/bin/mc mb warehouse/local-warehouse;
+        exit 0;
+      "
+    networks:
+      - trino-network
+
+volumes:
+  minio-data:
+    driver: local
+  db:
+    driver: local
+
+networks:
+  trino-network:
+    driver: bridge
