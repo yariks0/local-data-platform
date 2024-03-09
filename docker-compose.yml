@@ -83,8 +83,8 @@ services:
     image: spark-iceberg:latest
     hostname: spark-worker
     environment:
-      - SPARK_ HOME=/opt/spark
-      - PYSPARK_ PYTHON=/usr/local/bin/python3.11
+      - SPARK_HOME=/opt/spark
+      - PYSPARK_PYTHON=/usr/local/bin/python3.11
       - NODE_MODE=worker
       - SPARK_WORKER_CORES=1
       - SPARK_WORKER_MEMORY=2g
