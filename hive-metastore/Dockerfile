@@ -20,7 +20,7 @@ RUN apt-get clean && \
     mv apache-hive-metastore-${METASTORE_VERSION}-bin/* ${METASTORE_HOME} && \
     mv hadoop-${HADOOP_VERSION}/* ${HADOOP_HOME}
 
-RUN apt-get install openssl libssl1.1 libexpat1 && \
+RUN apt-get install openssl libssl3 libexpat1 && \
     apt-get install -y libk5crypto3 libkrb5-3 libsqlite3-0
 
 RUN curl -o ${METASTORE_HOME}/lib/postgresql-42.2.25.jre7.jar -L https://jdbc.postgresql.org/download/postgresql-42.2.25.jre7.jar
