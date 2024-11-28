@@ -13,8 +13,9 @@ ENV SPARK_HOME=${SPARK_HOME:-"/opt/spark"}
 ENV HADOOP_HOME=${HADOOP_HOME:-"/opt/hadoop"}
 ENV SPARK_VERSION=3.5.3
 ENV SPARK_MAJOR_VERSION=3.5
-ENV ICEBERG_VERSION=1.4.3
+ENV ICEBERG_VERSION=1.7.0
 ENV HADOOP_VERSION=3.3.6
+ENV POSTGRESQL_DRIVER_VERSION=42.7.4
 
 RUN mkdir -p ${HADOOP_HOME} && mkdir -p ${SPARK_HOME}
 WORKDIR ${SPARK_HOME}
@@ -25,9 +26,8 @@ RUN curl https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VER
     && rm -rf spark-${SPARK_VERSION}-bin-hadoop3.tgz
 
 # Download postgres
-RUN curl https://jdbc.postgresql.org/download/postgresql-42.2.24.jar -o postgresql-42.2.24.jar \
-    && cp postgresql-42.2.24.jar /opt/spark/jars \
-    && rm postgresql-42.2.24.jar
+RUN curl https://repo1.maven.org/maven2/org/postgresql/postgresql/${POSTGRESQL_DRIVER_VERSION}/postgresql-${POSTGRESQL_DRIVER_VERSION}.jar -Lo \
+    /opt/spark/jars/postgresql-${POSTGRESQL_DRIVER_VERSION}.jar
 
 # Download iceberg spark runtime
 RUN curl https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12/${ICEBERG_VERSION}/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12-${ICEBERG_VERSION}.jar -Lo /opt/spark/jars/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12-${ICEBERG_VERSION}.jar
